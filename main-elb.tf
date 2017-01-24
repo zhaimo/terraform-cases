@@ -11,11 +11,11 @@ variable "server_port" {
 # ---------------------------------------------------------------------------------------------------------------------
 data "aws_availability_zones" "all" {}
 # ---------------------------------------------------------------------------------------------------------------------
-resource "aws_security_group" "elbweb" {
-  name = "terraform-elbweb"
+resource "aws_security_group" "ec2" {
+  name = "terraform-ec2"
   ingress {
-    from_port = 8080
-    to_port = 8080
+    from_port = "${var.server_port}"
+    to_port = "${var.server_port}"
     protocol = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -23,11 +23,25 @@ resource "aws_security_group" "elbweb" {
     create_before_destroy = true
   }
 }
-
+resource "aws_security_group" "elb" {
+  name = "terraform-elb"
+  egress {
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+ ingress {
+    from_port = 80
+    to_port = 80
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
 resource "aws_launch_configuration" "elbweb" {
   image_id = "ami-2d39803a"
   instance_type = "t2.micro"
-  security_groups = ["${aws_security_group.elbweb.id}"]
+  security_groups = ["${aws_security_group.ec2.id}"]
   user_data = <<-EOF
               #!/bin/bash
               echo "Hello, World" > index.html
@@ -71,21 +85,7 @@ resource "aws_elb" "elbweb" {
     instance_protocol = "http"
   }
 }
-resource "aws_security_group" "elb" {
-  name = "terraform-elb"
-  egress {
-    from_port = 0
-    to_port = 0
-    protocol = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
- ingress {
-    from_port = 80
-    to_port = 80
-    protocol = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
+
 
 output "elb_dns_name" {
   value = "${aws_elb.elbweb.dns_name}"
