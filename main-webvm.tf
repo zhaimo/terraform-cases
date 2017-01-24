@@ -26,3 +26,7 @@ resource "aws_instance" "webvm" {
     Name = "terraform-webvm"
   }
 }
+
+output "public_ip" {
+  value = "${aws_instance.webvm.public_ip}"
+}
